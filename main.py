@@ -14,24 +14,12 @@ async def on_message(message):
         return
 
     if isinstance(message.channel, discord.DMChannel):
-        if message.content.lower() == '!oi':
-            await message.channel.send('Olá em mensagem privada!')
-    else:
-        if message.content.lower() == '!oi':
-            await message.channel.send('Olá em um canal público!')
-
-    # brooklyn_99_quotes = [
-    #     'I\'m the human form of the 💯 emoji.',
-    #     'Bingpot!',
-    #     (
-    #         'Cool. Cool cool cool cool cool cool cool, '
-    #         'no doubt no doubt no doubt no doubt.'
-    #     ),
-    # ]
-
-    # if message.content == '99!':
-    #     response = random.choice(brooklyn_99_quotes)
-    #     await message.channel.send(response)
+        if message.content.lower() == '!source':
+            await message.channel.send('source code: https://github.com/FidyBack/gpt-chatbot')
+        
+        if message.content.lower() == '!author':
+            await message.channel.send('author: Abel Cavalcante\nemail:abelcan@al.insper.edu.br')
 
 
-client.run('MTA3NTIyNDE1NDM4ODgzMjI4OA.GI5FfB.rMEGGaB3sR1g4pkiG02YEclG22WH8Tm1h-eBvA')
+
+client.run('TOKEN')
