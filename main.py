@@ -1,6 +1,10 @@
+from dotenv import load_dotenv
 import discord
-import random
+import os
 
+
+load_dotenv()
+TOKEN = os.getenv('DISCORD_TOKEN')
 client = discord.Client(intents=discord.Intents.all())
 
 @client.event
@@ -18,8 +22,8 @@ async def on_message(message):
             await message.channel.send('source code: https://github.com/FidyBack/gpt-chatbot')
         
         if message.content.lower() == '!author':
-            await message.channel.send('author: Abel Cavalcante\nemail:abelcan@al.insper.edu.br')
+            await message.channel.send('author: Abel Cavalcante\nemail: abelcan@al.insper.edu.br')
 
 
 
-client.run('TOKEN')
+client.run(TOKEN)
