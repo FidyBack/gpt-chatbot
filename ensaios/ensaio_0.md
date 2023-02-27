@@ -1,0 +1,1 @@
+Nesta etapa inicial do projeto, as maiores dificuldades foram em relação à própria configuração do bot, além do entendimento da API do discord. Em geral, não houveram outras áreas que dificultaram o desenvolvimento do projeto.
