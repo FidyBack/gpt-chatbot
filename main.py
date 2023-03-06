@@ -1,5 +1,8 @@
 from dotenv import load_dotenv
+import requests
 import discord
+import random
+import re
 import os
 
 
@@ -26,12 +29,68 @@ async def on_message(message):
         return
 
     if isinstance(message.channel, discord.DMChannel):
-        if message.content.lower() == '!source':
-            await message.channel.send('Source Code: https://github.com/FidyBack/gpt-chatbot')
-        
-        if message.content.lower() == '!author':
-            await message.channel.send('Author: Abel Cavalcante\nE-mail: abelcan@al.insper.edu.br')
+        mensage_content = message.content.split(' ')
+        command = mensage_content[0].lower()
 
+        if command == '!source':
+            embed = discord.Embed(title="Source Code: https://github.com/FidyBack/gpt-chatbot", color=0x00ff00)
+            await message.channel.send(embed=embed)
+        
+        if command == '!author':
+            embed = discord.Embed(title="Author", color=0x00ff00)
+            title, content = ['Credits', 'E-mail'], ['Abel Cavalcante', 'abelcan@al.insper.edu.br']
+            for index, value in enumerate(title):
+                embed.add_field(name=value, value=content[index], inline=False)
+            
+            await message.channel.send(embed=embed)
+
+        if command == '!run':
+            embed = discord.Embed(title="What's your Pokemon?", color=0x00ff00)
+
+            if len(mensage_content) > 1:
+                pokemon_name = re.sub(r'\W+', '', mensage_content[1].lower())
+                poke_request = requests.get(f'https://pokeapi.co/api/v2/pokemon/{pokemon_name}')
+            else:
+                pokemon_id = random.randint(1, 1010)
+                poke_request = requests.get(f'https://pokeapi.co/api/v2/pokemon/{pokemon_id}')
+            
+            if poke_request.status_code == 200:
+                pokemon_data = poke_request.json()
+            
+                title = ['', 'Type', 'Photo']
+                content = [pokemon_data['name'].capitalize(), pokemon_data['types'][0]['type']['name'].capitalize(), pokemon_data['sprites']['front_default']]
+                for index, value in enumerate(title):
+                    if value != 'Photo':
+                        embed.add_field(name=value, value=content[index], inline=False)
+                    else:
+                        embed.set_image(url=content[index])
+            else:
+                embed = discord.Embed(title="Pokemon not found!", color=0x00ff00)
+
+            await message.channel.send(embed=embed)
+
+
+
+
+        if message.content.lower() == '!help':
+            embed = discord.Embed(title="Help", color=0x00ff00)
+            title = ['!source', '!author', '!run', '!run <pokemon_name>']
+            content = ['Show the source code of this bot', 'Show the author of this bot', 'Shows a random pokemon and its type', 'Shows the pokemon and its type']
+            for index, value in enumerate(title):
+                embed.add_field(name=value, value=content[index], inline=False)
+            
+            await message.channel.send(embed=embed)
+        #     messages = ['Message 1', 'Message 2', 'Message 3']
+            
+        #     embed = discord.Embed(title="List of Messages", description="", color=0x00ff00)
+        #     for index, messagee in enumerate(messages):
+        #         embed.add_field(name=f"Message {index+1}", value=messagee, inline=False)
+            
+        #     await message.channel.send(embed=embed)
+            # await message.channel.send('Commands:\
+            #                            \n!source - Show the source code of this bot\
+            #                            \n!author - Show the author of this bot\
+            #                            \n!run - Run the bot')
 
 
 client.run(TOKEN)
