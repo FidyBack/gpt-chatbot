@@ -58,7 +58,8 @@ async def on_message(message):
                 pokemon_data = poke_request.json()
             
                 title = ['', 'Type', 'Photo']
-                content = [pokemon_data['name'].capitalize(), pokemon_data['types'][0]['type']['name'].capitalize(), pokemon_data['sprites']['front_default']]
+                types = [type['type']['name'].capitalize() for type in pokemon_data['types']]
+                content = [pokemon_data['name'].capitalize(), ', '.join(types), pokemon_data['sprites']['front_default']]
                 for index, value in enumerate(title):
                     if value != 'Photo':
                         embed.add_field(name=value, value=content[index], inline=False)
@@ -70,8 +71,6 @@ async def on_message(message):
             await message.channel.send(embed=embed)
 
 
-
-
         if message.content.lower() == '!help':
             embed = discord.Embed(title="Help", color=0x00ff00)
             title = ['!source', '!author', '!run', '!run <pokemon_name>']
@@ -80,17 +79,6 @@ async def on_message(message):
                 embed.add_field(name=value, value=content[index], inline=False)
             
             await message.channel.send(embed=embed)
-        #     messages = ['Message 1', 'Message 2', 'Message 3']
-            
-        #     embed = discord.Embed(title="List of Messages", description="", color=0x00ff00)
-        #     for index, messagee in enumerate(messages):
-        #         embed.add_field(name=f"Message {index+1}", value=messagee, inline=False)
-            
-        #     await message.channel.send(embed=embed)
-            # await message.channel.send('Commands:\
-            #                            \n!source - Show the source code of this bot\
-            #                            \n!author - Show the author of this bot\
-            #                            \n!run - Run the bot')
 
 
 client.run(TOKEN)
