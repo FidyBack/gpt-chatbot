@@ -2,8 +2,7 @@
 Neste repositório, você encontrará o código-fonte de um chatbot responsável por responder a comandos de um usuário em um chat privado. Para usá-lo, basta seguir os seguintes passos:
 
 1. Instale o Python 3.6 ou superior;
-2. Instale o dotenv e o discord.py com o comando `pip install python-dotenv discord.py` ;
-3. Instalar o pokebase com o comando `pip install pokebase` ;
+2. Instale os pacotes necessários com o comando `pip install -r requirements.txt` ;
 4. Clone este repositório;
 5. Entre na pasta do repositório;
 6. Execute o comando `python main.py` para iniciar o bot;
