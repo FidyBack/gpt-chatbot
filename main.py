@@ -217,37 +217,6 @@ async def search(ctx, *keywords):
     await message.edit(embed=embed)
 
 
-
-# @bot.command()
-# async def search(message, *keywords):
-#     """
-#     Search for a keyword in the crawled websites.
-#     """
-#     embed = discord.Embed(title="Search", color=0x00ff00)
-
-#     if keywords:
-#         for keyword in keywords:
-#             # Check if the keyword is in the database
-#             for url, content in global_database.items():
-#                 print(url)
-#                 # if keyword in content:
-#                 #     title = re.search(r'<title>(.*?)</title>', content)
-#                 #     if title:
-#                 #         embed.add_field(name=title.group(1), value=url, inline=False)
-#                 #     else:
-#                 #         embed.add_field(name=url, value=url, inline=False)
-#                 #     await message.send(embed=embed)
-#                 #     break
-
-            
-            
-
-#     # If no keyword was passed as argument
-#     else:
-#         embed.add_field(name="No keyword passed as argument", value="Please, pass a keyword as argument", inline=False)
-#         await message.send(embed=embed)
-
-
 @bot.command()
 async def help(message):
     """
