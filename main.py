@@ -2,6 +2,7 @@ from dotenv import load_dotenv
 from discord.ext import commands
 from bs4 import BeautifulSoup
 
+
 import requests
 import discord
 import random
@@ -16,6 +17,17 @@ if not os.path.exists('error.log'):
     with open('error.log', 'w') as file:
         file.write('')
 
+
+# Discord initial configuration
+intents = discord.Intents.default()
+intents.members = True
+intents.message_content = True
+
+bot = commands.Bot(command_prefix='!', intents=intents, help_command=None)
+
+
+# Program initial configuration
+global_database = {}
 
 # Discord initial configuration
 intents = discord.Intents.default()
