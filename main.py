@@ -1,11 +1,30 @@
 from dotenv import load_dotenv
 from discord.ext import commands
+from bs4 import BeautifulSoup
+
 
 import requests
 import discord
 import random
 import re
 import os
+import time
+import errno
+
+# Program initial configuration
+global_database = {}
+if not os.path.exists('error.log'):
+    with open('error.log', 'w') as file:
+        file.write('')
+
+
+# Discord initial configuration
+intents = discord.Intents.default()
+intents.members = True
+intents.message_content = True
+
+bot = commands.Bot(command_prefix='!', intents=intents, help_command=None)
+
 
 # Program initial configuration
 global_database = {}
@@ -87,30 +106,19 @@ async def run(message, pokemon_name: str = None):
     await message.send(embed=embed)
 
 @bot.command()
-async def help(message):
-    """
-    Shows a list of commands.
-    """
-    embed = discord.Embed(title="Help", color=0x00ff00)
-    title = ['!source', '!author', '!run', '!run <pokemon_name>']
-    content = [
-        'Show the source code of this bot', 
-        'Show the author of this bot', 
-        'Shows a random pokemon and its type', 
-        'Shows the selected pokemon and its type'
-        ]
-    for index, value in enumerate(title):
-        embed.add_field(name=value, value=content[index], inline=False)
-    
-    await message.send(embed=embed)
-
-@bot.command()
-async def crawl(message, *urls):
+async def crawl(ctx, *urls):
     """
     Does a crawl in a website and store its content.
     """
-    embed = discord.Embed(title="Crawler", color=0x00ff00)
+    embed = discord.Embed(title="Crawler - Processing...", color=0x00ff00)
+    await ctx.send(embed=embed)
 
+    # Get the last message sent by the bot
+    async for message in ctx.channel.history(limit=100):
+        if message.author == bot.user:
+            break
+
+    # Check if there is any url
     if urls:
         for url in urls:
             # Check if the url is valid
@@ -120,79 +128,125 @@ async def crawl(message, *urls):
                 try:
                     crawl_request = requests.get(f'https://{url}')
                     url = f'https://{url}'
-                except requests.exceptions.MissingSchema:
+                except Exception as e:
                     embed.add_field(name=url, value=f"Website {url} not found!", inline=False)
-                    await message.send(embed=embed)
+                    await message.edit(embed=embed)
                     continue
-                except requests.exceptions.ConnectionError:
-                    embed.add_field(name=url, value=f"Website {url} not found!", inline=False)
-                    await message.send(embed=embed)
-                    continue
-            except requests.exceptions.ConnectionError:
+            except Exception as e:
                 embed.add_field(name=url, value=f"Website {url} not found!", inline=False)
-                await message.send(embed=embed)
+                await message.edit(embed=embed)
                 continue
 
             # Check if the url is already in the database
             if url in global_database:
-                title = re.search(r'<title>(.*?)</title>', global_database[url])
+                title = global_database[url]["title"]
                 if title:
-                    embed.add_field(name=url, value=f"{title.group(1)} already crawled", inline=False)
+                    embed.add_field(name=url, value=f"{title} already crawled", inline=False)
                 else:
                     embed.add_field(name=url, value=f"{url} already crawled", inline=False)
-                await message.send(embed=embed)
+                await message.edit(embed=embed)
                 continue
 
             # Check if the url was crawled successfully and store its content
             if crawl_request.status_code == 200:
-                crawl_data = crawl_request.text
-                title = re.search(r'<title>(.*?)</title>', crawl_data)
+                soup = BeautifulSoup(crawl_request.text, 'html.parser')
+                title = soup.title
+                crawl_data_content = soup.body.text
+                inverted_index = {}
+
+                # Create the inverted index
+                for word in crawl_data_content.split():
+                    if word in inverted_index:
+                        inverted_index[word] += 1
+                    else:
+                        inverted_index[word] = 1
+
                 if title:
-                    embed.add_field(name=url, value=f"{title.group(1)} was crawled successfully", inline=False)
+                    global_database[url] = {"title": title.text, "content": crawl_data_content, "inverted_index": inverted_index}
+                    embed.add_field(name=url, value=f"{title.text} was crawled successfully", inline=False)
                 else:
+                    global_database[url] = {"title": None, "content": crawl_data_content, "inverted_index": inverted_index}
                     embed.add_field(name=url, value=f"{url} was crawled successfully", inline=False)
 
-                global_database[url] = crawl_data
-                await message.send(embed=embed)
+                await message.edit(embed=embed)
                 continue
 
             # If the url was not crawled successfully
             else:
-                embed.add_field(name=url, value=f"Website {url} not found!", inline=False)
-                await message.send(embed=embed)
-                continue
+                print(f'Error {crawl_request.status_code} - {crawl_request.reason} - {url}')
+                error_code = crawl_request.status_code
+                embed.add_field(name=url, value=f"Error {error_code} - {crawl_request.reason}", inline=False)
+                await message.edit(embed=embed)
 
     # If no url was passed as argument
     else:
-        embed.add_field(name="No url passed as argument", value="Please, pass a url as argument", inline=False)
-        await message.send(embed=embed)
+        embed.add_field(name="Error", value="No url passed as argument!", inline=False)
+        await message.edit(embed=embed)
 
-## VERIFICAR 7
+    embed.title = "Crawler - Finished!"
+    await message.edit(embed=embed)
+
 @bot.command()
-async def search(message, *keywords):
+async def search(ctx, *keywords):
     """
-    Search for a keyword in the crawled websites.
+    Search for websites that contain the keywords.
     """
-    embed = discord.Embed(title="Search", color=0x00ff00)
+    embed = discord.Embed(title="Search - Processing...", color=0x00ff00)
+    await ctx.send(embed=embed)
 
+    # Get the last message sent by the bot
+    async for message in ctx.channel.history(limit=100):
+        if message.author == bot.user:
+            break
+
+    # Check if there is any keyword
     if keywords:
+        # starts the search using inverted index
         for keyword in keywords:
-            keyword = keyword.lower()
             # Check if the keyword is in the database
-            if keyword in global_database:
-                embed.add_field(name=keyword, value=f"{keyword} was found in {len(global_database[keyword])} websites", inline=False)
-                await message.send(embed=embed)
-                continue
-
-            # If the keyword is not in the database
-            else:
-                embed.add_field(name=keyword, value=f"{keyword} was not found in any website", inline=False)
-                await message.send(embed=embed)
-                continue
-
+            for url, content in global_database.items():
+                if keyword in content["inverted_index"]:
+                    title = content["title"]
+                    times = content["inverted_index"][keyword]
+                    if title:
+                        embed.add_field(name=url, value=f"{title} contains the keyword *{keyword}* **{times}** times", inline=False)
+                    else:
+                        embed.add_field(name=url, value=f"{url} contains the keyword *{keyword}* **{times}** times", inline=False)
+                    await message.edit(embed=embed)
+                    continue
+        
+        # TODO: SEE THAT
+        if not embed.fields:
+            embed.add_field(name="Search", value="No results found!", inline=False)
+            await message.edit(embed=embed)
+    
     # If no keyword was passed as argument
     else:
-        embed.add_field(name="No keyword passed as argument", value="Please, pass a keyword as argument", inline=False)
-        await message.send(embed=embed)
+        embed.add_field(name="Error", value="No keyword passed as argument!", inline=False)
+        await message.edit(embed=embed)
+    
+    embed.title = "Search - Finished!"
+    await message.edit(embed=embed)
+
+
+@bot.command()
+async def help(message):
+    """
+    Shows a list of commands.
+    """
+    embed = discord.Embed(title="Help", color=0x00ff00)
+    title = ['!source', '!author', '!run', '!run <pokemon_name>', '!crawl <url>', '!search <keyword>']
+    content = [
+        'Show the source code of this bot', 
+        'Show the author of this bot', 
+        'Shows a random pokemon and its type', 
+        'Shows the selected pokemon and its type',
+        'Crawl a website and store its content',
+        'Search for websites that contains the keyword'
+        ]
+    for index, value in enumerate(title):
+        embed.add_field(name=value, value=content[index], inline=False)
+    
+    await message.send(embed=embed)
 
 bot.run(TOKEN)
