@@ -117,70 +117,71 @@ async def crawl(ctx, *urls):
         if message.author == bot.user:
             break
 
-    # Check if there is any url
-    if urls:
-        for url in urls:
-            # Check if the url is valid
-            try:
-                crawl_request = requests.get(url)
-            except requests.exceptions.MissingSchema:
-                try:
-                    crawl_request = requests.get(f'https://{url}')
-                    url = f'https://{url}'
-                except Exception as e:
-                    embed.add_field(name=url, value=f"Website {url} not found!", inline=False)
-                    await message.edit(embed=embed)
-                    continue
-            except Exception as e:
-                embed.add_field(name=url, value=f"Website {url} not found!", inline=False)
-                await message.edit(embed=embed)
-                continue
-
-            # Check if the url is already in the database
-            if url in global_database:
-                title = global_database[url]["title"]
-                if title:
-                    embed.add_field(name=url, value=f"{title} already crawled", inline=False)
-                else:
-                    embed.add_field(name=url, value=f"{url} already crawled", inline=False)
-                await message.edit(embed=embed)
-                continue
-
-            # Check if the url was crawled successfully and store its content
-            if crawl_request.status_code == 200:
-                soup = BeautifulSoup(crawl_request.text, 'html.parser')
-                title = soup.title
-                crawl_data_content = soup.body.text
-                inverted_index = {}
-
-                # Create the inverted index
-                for word in crawl_data_content.split():
-                    if word in inverted_index:
-                        inverted_index[word] += 1
-                    else:
-                        inverted_index[word] = 1
-
-                if title:
-                    global_database[url] = {"title": title.text, "content": crawl_data_content, "inverted_index": inverted_index}
-                    embed.add_field(name=url, value=f"{title.text} was crawled successfully", inline=False)
-                else:
-                    global_database[url] = {"title": None, "content": crawl_data_content, "inverted_index": inverted_index}
-                    embed.add_field(name=url, value=f"{url} was crawled successfully", inline=False)
-
-                await message.edit(embed=embed)
-                continue
-
-            # If the url was not crawled successfully
-            else:
-                print(f'Error {crawl_request.status_code} - {crawl_request.reason} - {url}')
-                error_code = crawl_request.status_code
-                embed.add_field(name=url, value=f"Error {error_code} - {crawl_request.reason}", inline=False)
-                await message.edit(embed=embed)
-
     # If no url was passed as argument
-    else:
-        embed.add_field(name="Error", value="No url passed as argument!", inline=False)
+    if not urls:
+        embed.add_field(name="No URL", value="Please, pass at least one URL as argument", inline=False)
+        embed.title = "Crawler - Finished!"
         await message.edit(embed=embed)
+        return
+
+    for url in urls:
+        # Check if the url is valid
+        try:
+            crawl_request = requests.get(url)
+        except requests.exceptions.MissingSchema:
+            try:
+                crawl_request = requests.get(f'https://{url}')
+                url = f'https://{url}'
+            except Exception as e:
+                embed.add_field(name=f"**{url}**", value=f"Website not found!", inline=False)
+                await message.edit(embed=embed)
+                continue
+        except Exception as e:
+            embed.add_field(name=f"**{url}**", value=f"Website not found!", inline=False)
+            await message.edit(embed=embed)
+            continue
+
+        # Check if the url is already in the database
+        if url in global_database:
+            title = global_database[url]["title"]
+            if title:
+                embed.add_field(name=f"**{title}**", value=f"[{title}]({url}) already crawled", inline=False)
+            else:
+                embed.add_field(name=f"**{url}**", value=f"{url} already crawled", inline=False)
+            await message.edit(embed=embed)
+            continue
+
+        # Check if the url was crawled successfully and store its content
+        if crawl_request.status_code == 200:
+            soup = BeautifulSoup(crawl_request.text, 'html.parser')
+            title = soup.title
+            crawl_data_content = soup.body.text
+            inverted_index = {}
+
+            # Create the inverted index
+            for word in crawl_data_content.split():
+                if word in inverted_index:
+                    inverted_index[word] += 1
+                else:
+                    inverted_index[word] = 1
+
+            if title:
+                global_database[url] = {"title": title.text, "content": crawl_data_content, "inverted_index": inverted_index}
+                embed.add_field(name=f"**{title.text}**", value=f"[{title.text}]({url}) crawled successfully", inline=False)
+            else:
+                global_database[url] = {"title": url, "content": crawl_data_content, "inverted_index": inverted_index}
+                embed.add_field(name=f"**{url}**", value=f"{url} crawled successfully", inline=False)
+
+            await message.edit(embed=embed)
+            continue
+
+        # If the url was not crawled successfully
+        else:
+            print(f'Error {crawl_request.status_code} - {crawl_request.reason} - {url}')
+            error_code = crawl_request.status_code
+            embed.add_field(name=f"**{url}**", value=f"Error {error_code} - {crawl_request.reason}", inline=False)
+            await message.edit(embed=embed)
+            continue
 
     embed.title = "Crawler - Finished!"
     await message.edit(embed=embed)
@@ -198,35 +199,55 @@ async def search(ctx, *keywords):
         if message.author == bot.user:
             break
 
-    # Check if there is any keyword
-    if keywords:
-        # starts the search using inverted index
-        for keyword in keywords:
-            # Check if the keyword is in the database
-            for url, content in global_database.items():
-                if keyword in content["inverted_index"]:
-                    title = content["title"]
-                    times = content["inverted_index"][keyword]
-                    if title:
-                        embed.add_field(name=url, value=f"{title} contains the keyword *{keyword}* **{times}** times", inline=False)
-                    else:
-                        embed.add_field(name=url, value=f"{url} contains the keyword *{keyword}* **{times}** times", inline=False)
-                    await message.edit(embed=embed)
-                    continue
-        
-        # TODO: SEE THAT
-        if not embed.fields:
-            embed.add_field(name="Search", value="No results found!", inline=False)
-            await message.edit(embed=embed)
-    
     # If no keyword was passed as argument
-    else:
+    if not keywords:
         embed.add_field(name="Error", value="No keyword passed as argument!", inline=False)
+        embed.title = "Search - Finished!"
         await message.edit(embed=embed)
+        return
+
+    # Starts the search using inverted index
+    for keyword in keywords:
+        links_titles_times = []
+        for url, content in global_database.items():
+            if keyword in content["inverted_index"]:
+                links_titles_times.append((url, content["title"], content["inverted_index"][keyword]))
+
+        # Sort the results by the number of times the keyword appears in the website
+        links_titles_times.sort(key=lambda x: x[2], reverse=True)
+
+        # Add the results to the embed
+        if links_titles_times:
+            embed.add_field(
+                name=f"Keyword: **{keyword}**",
+                value="\n".join([f"[{title}]({url}) - {times} times" for url, title, times in links_titles_times]),
+                inline=False
+                )
+        else:
+            embed.add_field(name=f"Keyword: **{keyword}**", value="No results", inline=False)
     
     embed.title = "Search - Finished!"
     await message.edit(embed=embed)
 
+@bot.command()
+async def wn_search(ctx, *keywords):
+    """
+    Search for websites that contain the keywords and words that are similar to the keywords using wordnet.
+    """
+    embed = discord.Embed(title="Wordnet Search - Processing...", color=0x00ff00)
+    await ctx.send(embed=embed)
+
+    # Get the last message sent by the bot
+    async for message in ctx.channel.history(limit=100):
+        if message.author == bot.user:
+            break
+
+    # If no keyword was passed as argument
+    if not keywords:
+        embed.add_field(name="Error", value="No keyword passed as argument!", inline=False)
+        embed.title = "Wordnet Search - Finished!"
+        await message.edit(embed=embed)
+        return
 
 @bot.command()
 async def help(message):
@@ -234,14 +255,15 @@ async def help(message):
     Shows a list of commands.
     """
     embed = discord.Embed(title="Help", color=0x00ff00)
-    title = ['!source', '!author', '!run', '!run <pokemon_name>', '!crawl <url>', '!search <keyword>']
+    title = ['!source', '!author', '!run', '!run <pokemon_name>', '!crawl <url>', '!search <keyword>', '!wn_search <keyword>']
     content = [
-        'Show the source code of this bot', 
-        'Show the author of this bot', 
-        'Shows a random pokemon and its type', 
-        'Shows the selected pokemon and its type',
-        'Crawl a website and store its content',
-        'Search for websites that contains the keyword'
+        'Shows the source code of the bot.',
+        'Shows the author of the bot.',
+        'Shows information about a pokemon.',
+        'Shows information about a specific pokemon.',
+        'Crawls one or more websites.',
+        'Search and shows websites that contain the keywords. It also shows the number of times the keyword appears in the website. Can be used with multiple keywords.',
+        'Search and shows websites that contain the keywords and words that are similar to the keywords using wordnet. Can be used with multiple keywords.'
         ]
     for index, value in enumerate(title):
         embed.add_field(name=value, value=content[index], inline=False)
