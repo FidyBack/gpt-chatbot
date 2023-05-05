@@ -2,7 +2,6 @@ from dotenv import load_dotenv
 from discord.ext import commands
 from bs4 import BeautifulSoup
 
-
 import requests
 import discord
 import random
