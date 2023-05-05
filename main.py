@@ -209,9 +209,9 @@ async def search(ctx, *keywords):
                     title = content["title"]
                     times = content["inverted_index"][keyword]
                     if title:
-                        embed.add_field(name=url, value=f"{title} contains the keyword **{keyword}** {times} times", inline=False)
+                        embed.add_field(name=url, value=f"{title} contains the keyword *{keyword}* **{times}** times", inline=False)
                     else:
-                        embed.add_field(name=url, value=f"{url} contains the keyword **{keyword}** {times} times", inline=False)
+                        embed.add_field(name=url, value=f"{url} contains the keyword *{keyword}* **{times}** times", inline=False)
                     await message.edit(embed=embed)
                     continue
         
